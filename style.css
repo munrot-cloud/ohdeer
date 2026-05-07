@@ -1,0 +1,17 @@
+body {
+  font-family: Arial, sans-serif;
+  max-width: 700px;
+  margin: auto;
+  padding: 20px;
+}
+
+button {
+  margin: 5px;
+  padding: 10px;
+}
+
+#log {
+  margin-top: 20px;
+  padding: 10px;
+  background: #f3f3f3;
+}
