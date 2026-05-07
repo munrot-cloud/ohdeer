@@ -1,19 +1,20 @@
 let round = 1;
 let deerPopulation = 10;
 
+// Start with more habitat so decline is visible
 let habitat = {
-  food: 8,
-  water: 8,
-  shelter: 8
+  food: 15,
+  water: 15,
+  shelter: 15
 };
 
-// Controls how fast habitat recovers
-const REGEN_RATE = 2;
+// Slow regeneration
+const REGEN_RATE = 1;
 
 function updateStats() {
   document.getElementById("stats").innerHTML = `
     <h2>Level ${round}</h2>
-    <strong>Deer population:</strong> ${deerPopulation}<br>
+    <strong>Deer population:</strong> ${deerPopulation}<br><br>
     <strong>Habitat available:</strong><br>
     Food: ${habitat.food}<br>
     Water: ${habitat.water}<br>
@@ -29,50 +30,57 @@ function playTurn(playerChoice) {
   // Player choice
   choices.push(playerChoice);
 
-  // Computer deer choose randomly
+  // Computer-controlled deer
   for (let i = 1; i < deerPopulation; i++) {
     let opts = ["food", "water", "shelter"];
     choices.push(opts[Math.floor(Math.random() * opts.length)]);
   }
 
-  let results = resolveCompetition(choices);
+  let { successes, consumption } = resolveCompetition(choices);
 
-  // Population update
-  let survivors = results.successes;
-  let births = Math.floor(survivors * 0.5); // 50% reproduce
+  // Births depend on success
+  let births = Math.floor(successes * 0.5);
 
-  deerPopulation = survivors + births;
+  deerPopulation = successes + births;
 
-  // Habitat regeneration
+  // Regenerate habitat (slowly)
   for (let type in habitat) {
     habitat[type] += REGEN_RATE;
-    if (habitat[type] > 10) habitat[type] = 10; // cap
+    if (habitat[type] < 0) habitat[type] = 0;
   }
 
-  round++;
-
+  // Log this round clearly
   document.getElementById("log").innerHTML += `
     <div class="round-log">
-      <h3>Level ${round - 1} Results</h3>
-      Deer survived: ${survivors}<br>
-      New births: ${births}<br>
+      <h3>Level ${round}</h3>
+      Survivors: ${successes}<br>
+      Births: ${births}<br>
+      Habitat used — 
+      Food: ${consumption.food},
+      Water: ${consumption.water},
+      Shelter: ${consumption.shelter}
     </div>
   `;
 
+  round++;
   updateStats();
 }
 
 function resolveCompetition(choices) {
-  let counts = { food: 0, water: 0, shelter: 0 };
-  choices.forEach(c => counts[c]++);
+  let demand = { food: 0, water: 0, shelter: 0 };
+  let used = { food: 0, water: 0, shelter: 0 };
+
+  choices.forEach(c => demand[c]++);
 
   let successes = 0;
 
-  for (let type in counts) {
-    let matched = Math.min(counts[type], habitat[type]);
+  for (let type in demand) {
+    let matched = Math.min(demand[type], habitat[type]);
     successes += matched;
-    habitat[type] -= matched; // habitat is consumed
+
+    habitat[type] -= matched;
+    used[type] = matched;
   }
 
-  return { successes };
+  return { successes, consumption: used };
 }
