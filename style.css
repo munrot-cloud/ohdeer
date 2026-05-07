@@ -15,3 +15,9 @@ button {
   padding: 10px;
   background: #f3f3f3;
 }
+
+.round-log {
+  border-left: 4px solid #3a7;
+  padding-left: 12px;
+  margin-bottom: 12px;
+}
