@@ -1,21 +1,38 @@
 let round = 1;
-let deerPopulation = 10;
 
-// Start with more habitat so decline is visible
+// Each deer is an object with a fixed need
+let deer = [];
+
+// Initial population
+function initDeer(count) {
+  deer = [];
+  for (let i = 0; i < count; i++) {
+    deer.push({
+      need: randomNeed()
+    });
+  }
+}
+
+function randomNeed() {
+  const needs = ["food", "water", "shelter"];
+  return needs[Math.floor(Math.random() * needs.length)];
+}
+
+// Initial state
+initDeer(12);
+
+// Habitat pools (NO regeneration in Level 1)
 let habitat = {
-  food: 15,
-  water: 15,
-  shelter: 15
+  food: 6,
+  water: 6,
+  shelter: 6
 };
-
-// Slow regeneration
-const REGEN_RATE = 1;
 
 function updateStats() {
   document.getElementById("stats").innerHTML = `
     <h2>Level ${round}</h2>
-    <strong>Deer population:</strong> ${deerPopulation}<br><br>
-    <strong>Habitat available:</strong><br>
+    <strong>Deer population:</strong> ${deer.length}<br><br>
+    <strong>Habitat remaining:</strong><br>
     Food: ${habitat.food}<br>
     Water: ${habitat.water}<br>
     Shelter: ${habitat.shelter}
@@ -25,62 +42,37 @@ function updateStats() {
 updateStats();
 
 function playTurn(playerChoice) {
-  let choices = [];
+  // Player overrides their deer’s need
+  deer[0].need = playerChoice;
 
-  // Player choice
-  choices.push(playerChoice);
+  let demand = { food: 0, water: 0, shelter: 0 };
+  deer.forEach(d => demand[d.need]++);
 
-  // Computer-controlled deer
-  for (let i = 1; i < deerPopulation; i++) {
-    let opts = ["food", "water", "shelter"];
-    choices.push(opts[Math.floor(Math.random() * opts.length)]);
+  let survivors = [];
+
+  for (let d of deer) {
+    if (habitat[d.need] > 0) {
+      habitat[d.need]--;
+      survivors.push(d);
+    }
   }
 
-  let { successes, consumption } = resolveCompetition(choices);
+  // Reproduction: each survivor produces one offspring
+  let offspring = survivors.map(d => ({
+    need: randomNeed()
+  }));
 
-  // Births depend on success
-  let births = Math.floor(successes * 0.5);
+  deer = survivors.concat(offspring);
 
-  deerPopulation = successes + births;
-
-  // Regenerate habitat (slowly)
-  for (let type in habitat) {
-    habitat[type] += REGEN_RATE;
-    if (habitat[type] < 0) habitat[type] = 0;
-  }
-
-  // Log this round clearly
   document.getElementById("log").innerHTML += `
     <div class="round-log">
       <h3>Level ${round}</h3>
-      Survivors: ${successes}<br>
-      Births: ${births}<br>
-      Habitat used — 
-      Food: ${consumption.food},
-      Water: ${consumption.water},
-      Shelter: ${consumption.shelter}
+      Demand → Food: ${demand.food}, Water: ${demand.water}, Shelter: ${demand.shelter}<br>
+      Survivors: ${survivors.length}<br>
+      Offspring: ${offspring.length}
     </div>
   `;
 
   round++;
   updateStats();
-}
-
-function resolveCompetition(choices) {
-  let demand = { food: 0, water: 0, shelter: 0 };
-  let used = { food: 0, water: 0, shelter: 0 };
-
-  choices.forEach(c => demand[c]++);
-
-  let successes = 0;
-
-  for (let type in demand) {
-    let matched = Math.min(demand[type], habitat[type]);
-    successes += matched;
-
-    habitat[type] -= matched;
-    used[type] = matched;
-  }
-
-  return { successes, consumption: used };
 }
